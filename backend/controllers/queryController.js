@@ -1,57 +1,80 @@
 const { generateEmbedding } = require("../services/embeddingService");
 const { searchVectors } = require("../services/pineconeSearchService");
-
 const { generateAnswer } = require("../services/geminiService");
+
+
 const askQuestion = async(req,res)=>{
 
     try{
 
-        const {question}=req.body;
+        const { question, documentId } = req.body;
 
 
         if(!question){
+
             return res.status(400).json({
                 message:"Question required"
             });
+
         }
 
 
-        // Question embedding
+        if(!documentId){
+
+            return res.status(400).json({
+                message:"Please select a document"
+            });
+
+        }
+
+
+
+        // Generate question embedding
         const queryVector = await generateEmbedding(
             question
         );
 
 
-        // Search Pinecone
+
+        // Search only selected document vectors
         const results = await searchVectors(
-            queryVector
+            queryVector,
+            documentId
         );
 
 
+
         const context = results.map(
-    item => item.metadata.text
-).join("\n\n");
+            item => item.metadata.text
+        ).join("\n\n");
 
 
-const answer = await generateAnswer(
-    question,
-    context
-);
+
+        const answer = await generateAnswer(
+            question,
+            context
+        );
 
 
-return res.json({
-    question,
-    answer
-});
+
+        return res.status(200).json({
+
+            question,
+            answer
+
+        });
 
 
     }
     catch(error){
 
-        console.log(error);
+        console.log("QUERY ERROR:",error);
 
-        res.status(500).json({
+
+        return res.status(500).json({
+
             message:"Query failed"
+
         });
 
     }
@@ -59,6 +82,7 @@ return res.json({
 };
 
 
-module.exports={
+
+module.exports = {
     askQuestion
 };

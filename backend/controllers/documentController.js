@@ -85,5 +85,24 @@ console.log("Job added to Redis queue");
     }
 };
 
+const getDocuments = async(req,res)=>{
 
-module.exports = { uploadDocument };
+    try{
+
+        const documents = await Document.find()
+        .select("filename");
+
+
+        res.json(documents);
+
+    }
+    catch(error){
+
+        res.status(500).json({
+            message:"Failed to fetch documents"
+        });
+
+    }
+
+};
+module.exports = { uploadDocument,getDocuments };

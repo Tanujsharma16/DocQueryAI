@@ -1,20 +1,45 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = new GoogleGenerativeAI(
-    process.env.GEMINI_API_KEY
-);
+const { pipeline } = require("@xenova/transformers");
 
 
-const generateEmbedding = async (text) => {
+let extractor = null;
 
-    const model = genAI.getGenerativeModel({
-        model: "gemini-embedding-001"
-    });
 
-    const result = await model.embedContent(text);
+const loadModel = async()=>{
 
-    return result.embedding.values;
+    if(!extractor){
+
+        extractor = await pipeline(
+            "feature-extraction",
+            "Xenova/all-MiniLM-L6-v2"
+        );
+
+    }
+
+    return extractor;
+
 };
+
+
+
+const generateEmbedding = async(text)=>{
+
+
+    const model = await loadModel();
+
+
+    const output = await model(
+        text,
+        {
+            pooling:"mean",
+            normalize:true
+        }
+    );
+
+
+    return Array.from(output.data);
+
+};
+
 
 
 module.exports = {

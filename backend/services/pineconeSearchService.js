@@ -1,27 +1,34 @@
 const pinecone = require("../config/pinecone");
 
 
-const searchVectors = async (vector) => {
-
-    const index = pinecone.index(
-        process.env.PINECONE_INDEX_NAME
-    );
+const index = pinecone.index(
+    process.env.PINECONE_INDEX_NAME
+);
 
 
-    const result = await index.query({
 
-        vector: vector,
+const searchVectors = async(queryVector, documentId)=>{
+
+
+    const results = await index.query({
+
+        vector: queryVector,
 
         topK: 5,
 
-        includeMetadata: true
+        includeMetadata: true,
+
+        filter:{
+            documentId: documentId
+        }
 
     });
 
 
-    return result.matches;
+    return results.matches;
 
 };
+
 
 
 module.exports = {

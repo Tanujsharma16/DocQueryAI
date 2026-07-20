@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import api from "../api/api";
 
 
@@ -8,6 +8,43 @@ function ChatBox(){
     const [answer,setAnswer] = useState("");
     const [loading,setLoading] = useState(false);
 
+    const [documents,setDocuments] = useState([]);
+    const [selectedDocument,setSelectedDocument] = useState("");
+
+
+
+    // Fetch all documents
+    useEffect(()=>{
+
+        const fetchDocuments = async()=>{
+
+            try{
+
+                const response = await api.get(
+                    "/documents"
+                );
+
+                setDocuments(response.data);
+
+            }
+            catch(error){
+
+                console.log(
+                    "Document fetch error:",
+                    error
+                );
+
+            }
+
+        };
+
+
+        fetchDocuments();
+
+    },[]);
+
+
+
 
     const askQuestion = async()=>{
 
@@ -16,18 +53,32 @@ function ChatBox(){
         }
 
 
+        if(!selectedDocument){
+
+            setAnswer(
+                "Please select a document first"
+            );
+
+            return;
+        }
+
+
+
         try{
 
             setLoading(true);
             setAnswer("");
 
 
+
             const response = await api.post(
                 "/query",
                 {
-                    question: question
+                    question: question,
+                    documentId: selectedDocument
                 }
             );
+
 
 
             setAnswer(
@@ -39,6 +90,7 @@ function ChatBox(){
         catch(error){
 
             console.log(error);
+
 
             setAnswer(
                 "Something went wrong ❌"
@@ -54,9 +106,48 @@ function ChatBox(){
     };
 
 
+
+
     return(
 
         <div className="mt-10 flex flex-col items-center gap-4">
+
+
+            {/* Document Dropdown */}
+
+            <select
+
+                value={selectedDocument}
+
+                onChange={(e)=>setSelectedDocument(e.target.value)}
+
+                className="border p-2 rounded-lg w-[500px]"
+
+            >
+
+                <option value="">
+                    Select Document
+                </option>
+
+
+                {
+                    documents.map((doc)=>(
+
+                        <option
+                            key={doc._id}
+                            value={doc._id}
+                        >
+                            {doc.filename}
+                        </option>
+
+                    ))
+                }
+
+
+            </select>
+
+
+
 
 
             <textarea
@@ -72,6 +163,9 @@ function ChatBox(){
             />
 
 
+
+
+
             <button
 
                 onClick={askQuestion}
@@ -81,7 +175,7 @@ function ChatBox(){
             >
 
                 {
-                    loading 
+                    loading
                     ? "Thinking..."
                     : "Ask"
                 }
@@ -90,10 +184,13 @@ function ChatBox(){
 
 
 
+
+
             {
                 answer && (
 
                     <div className="border p-5 w-[500px] rounded-lg">
+
 
                         <h2 className="font-bold mb-2">
                             Answer:
@@ -109,6 +206,7 @@ function ChatBox(){
 
                 )
             }
+
 
 
         </div>
