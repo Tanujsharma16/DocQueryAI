@@ -1,7 +1,10 @@
 require("dotenv").config();
 
-const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
+console.log("🔥 DOCUMENT WORKER STARTED");
+
 const { Worker } = require("bullmq");
+const fs = require("fs");
+const path = require("path");
 
 const redisConnection = require("../config/redis");
 const connectDB = require("../config/db");
@@ -9,8 +12,6 @@ const connectDB = require("../config/db");
 const Document = require("../models/Document");
 
 const { PDFParse } = require("pdf-parse");
-const fs = require("fs");
-const path = require("path");
 
 const chunkText = require("../utils/textChunker");
 
@@ -18,7 +19,7 @@ const { generateEmbedding } = require("../services/embeddingService");
 const { uploadVectors } = require("../services/pineconeService");
 
 
-// Connect MongoDB
+// Connect database
 connectDB();
 
 
@@ -41,7 +42,6 @@ const worker = new Worker(
 
 
 
-            // Get document from MongoDB
             const document = await Document.findById(
                 documentId
             );
@@ -64,13 +64,31 @@ const worker = new Worker(
 
 
 
-            /*
-                Create correct absolute path
-            */
+            // Correct upload path
+
+            const uploadDir = path.resolve(
+                __dirname,
+                "../uploads"
+            );
+
+
+            console.log(
+                "Worker upload directory:",
+                uploadDir
+            );
+
+
+            console.log(
+                "Files inside uploads:",
+                fs.existsSync(uploadDir)
+                ? fs.readdirSync(uploadDir)
+                : "Folder not found"
+            );
+
+
 
             const filePath = path.resolve(
-                __dirname,
-                "../uploads",
+                uploadDir,
                 document.filename
             );
 
@@ -100,13 +118,13 @@ const worker = new Worker(
 
 
             // Read PDF
+
             const pdfBuffer = fs.readFileSync(
                 filePath
             );
 
 
 
-            // Extract text
             const parser = new PDFParse({
 
                 data: pdfBuffer
@@ -129,8 +147,6 @@ const worker = new Worker(
             );
 
 
-
-            // Create chunks
 
             let chunks = [];
 
@@ -165,10 +181,9 @@ const worker = new Worker(
 
 
             console.log(
-                "Total chunks created:",
+                "Total chunks:",
                 chunks.length
             );
-
 
 
 
@@ -177,13 +192,14 @@ const worker = new Worker(
 
 
             for(
-                let i = 0;
-                i < chunks.length;
+                let i=0;
+                i<chunks.length;
                 i++
             ){
 
 
-                const vector = await generateEmbedding(
+                const vector =
+                await generateEmbedding(
                     chunks[i].content
                 );
 
@@ -200,25 +216,20 @@ const worker = new Worker(
 
                     metadata:{
 
-
                         documentId:
                         documentId.toString(),
-
 
                         text:
                         chunks[i].content,
 
-
                         chunkIndex:
                         i,
 
+                        pageNumber:
+                        chunks[i].pageNumber,
 
                         filename:
-                        document.filename,
-
-
-                        pageNumber:
-                        chunks[i].pageNumber
+                        document.filename
 
                     }
 
@@ -247,8 +258,6 @@ const worker = new Worker(
 
 
 
-            // Update status
-
             await Document.findByIdAndUpdate(
 
                 documentId,
@@ -276,7 +285,7 @@ const worker = new Worker(
 
             console.error(
                 "Worker Error:",
-                error
+                error.message
             );
 
 
@@ -287,13 +296,11 @@ const worker = new Worker(
 
     },
 
-
     {
-        connection:redisConnection
+        connection: redisConnection
     }
 
 );
-
 
 
 
