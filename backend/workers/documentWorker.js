@@ -19,7 +19,7 @@ const { generateEmbedding } = require("../services/embeddingService");
 const { uploadVectors } = require("../services/pineconeService");
 
 
-// Connect database
+// Connect MongoDB
 connectDB();
 
 
@@ -39,7 +39,6 @@ const worker = new Worker(
 
 
             const { documentId } = job.data;
-
 
 
             const document = await Document.findById(
@@ -63,8 +62,6 @@ const worker = new Worker(
             );
 
 
-
-            // Correct upload path
 
             const uploadDir = path.resolve(
                 __dirname,
@@ -124,6 +121,10 @@ const worker = new Worker(
             );
 
 
+            console.log(
+                "Starting PDF text extraction..."
+            );
+
 
             const parser = new PDFParse({
 
@@ -132,13 +133,16 @@ const worker = new Worker(
             });
 
 
-
             const pdfData = await parser.getText();
+
+
+            console.log(
+                "✅ PDF TEXT EXTRACTION COMPLETED"
+            );
 
 
 
             const pages = pdfData.pages;
-
 
 
             console.log(
@@ -186,16 +190,32 @@ const worker = new Worker(
             );
 
 
+            console.log(
+                "✅ CHUNK CREATION COMPLETED"
+            );
+
+
 
             const vectors = [];
 
 
 
+            console.log(
+                "🚀 STARTING EMBEDDING GENERATION"
+            );
+
+
+
             for(
-                let i=0;
-                i<chunks.length;
+                let i = 0;
+                i < chunks.length;
                 i++
             ){
+
+
+                console.log(
+                    `Generating embedding ${i+1}/${chunks.length}`
+                );
 
 
                 const vector =
@@ -204,11 +224,17 @@ const worker = new Worker(
                 );
 
 
+                console.log(
+                    `Embedding completed ${i+1}/${chunks.length}`
+                );
+
+
 
                 vectors.push({
 
                     id:
                     `${documentId}_chunk_${i}`,
+
 
                     values:
                     vector,
@@ -219,14 +245,18 @@ const worker = new Worker(
                         documentId:
                         documentId.toString(),
 
+
                         text:
                         chunks[i].content,
+
 
                         chunkIndex:
                         i,
 
+
                         pageNumber:
                         chunks[i].pageNumber,
+
 
                         filename:
                         document.filename
@@ -236,13 +266,13 @@ const worker = new Worker(
                 });
 
 
-
-                console.log(
-                    `Embedded chunk ${i+1}/${chunks.length}`
-                );
-
-
             }
+
+
+
+            console.log(
+                "Uploading vectors to Pinecone..."
+            );
 
 
 
@@ -253,7 +283,7 @@ const worker = new Worker(
 
 
             console.log(
-                "All vectors uploaded to Pinecone"
+                "✅ ALL VECTORS UPLOADED"
             );
 
 
@@ -276,16 +306,17 @@ const worker = new Worker(
 
 
             console.log(
-                "Document processing completed"
+                "🎉 DOCUMENT PROCESSING COMPLETED"
             );
 
 
         }
         catch(error){
 
+
             console.error(
-                "Worker Error:",
-                error.message
+                "❌ WORKER ERROR:",
+                error
             );
 
 
@@ -296,11 +327,13 @@ const worker = new Worker(
 
     },
 
+
     {
         connection: redisConnection
     }
 
 );
+
 
 
 
