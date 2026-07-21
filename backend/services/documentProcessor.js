@@ -8,9 +8,13 @@ const { generateEmbedding } = require("./embeddingService");
 const { uploadVectors } = require("./pineconeService");
 
 
+const BATCH_SIZE = 20;
+
+
 const processDocument = async(documentId)=>{
 
     try{
+
 
         const document = await Document.findById(
             documentId
@@ -28,9 +32,11 @@ const processDocument = async(documentId)=>{
         );
 
 
+
         const pdfBuffer = fs.readFileSync(
             document.filePath
         );
+
 
 
         const parser = new PDFParse({
@@ -38,29 +44,28 @@ const processDocument = async(documentId)=>{
         });
 
 
+
         const pdfData = await parser.getText();
 
-
-        console.log(
-            "PDF extracted"
-        );
 
 
         const pages = pdfData.pages;
 
 
+
         let chunks=[];
+
 
 
         pages.forEach(page=>{
 
 
-            const pageChunks =
-            chunkText(page.text);
+            const pageChunks = chunkText(
+                page.text
+            );
 
 
             pageChunks.forEach(chunk=>{
-
 
                 chunks.push({
 
@@ -71,7 +76,6 @@ const processDocument = async(documentId)=>{
 
                 });
 
-
             });
 
 
@@ -80,7 +84,7 @@ const processDocument = async(documentId)=>{
 
 
         console.log(
-            "Chunks:",
+            "Total chunks:",
             chunks.length
         );
 
@@ -89,50 +93,98 @@ const processDocument = async(documentId)=>{
         const vectors=[];
 
 
+
         for(
-            let i=0;
-            i<chunks.length;
-            i++
+            let start=0;
+            start<chunks.length;
+            start+=BATCH_SIZE
         ){
 
-            const vector =
-            await generateEmbedding(
-                chunks[i].content
+
+            const batch = chunks.slice(
+                start,
+                start+BATCH_SIZE
             );
 
-
-            vectors.push({
-
-                id:
-                `${documentId}_chunk_${i}`,
-
-                values:
-                vector,
-
-
-                metadata:{
-
-                    documentId:
-                    documentId.toString(),
-
-                    text:
-                    chunks[i].content,
-
-                    chunkIndex:i,
-
-                    filename:
-                    document.filename
-
-                }
-
-            });
 
 
             console.log(
-                `Embedding ${i+1}/${chunks.length}`
+                `Processing batch ${start}-${start+batch.length}`
             );
 
+
+
+            const embeddings = await Promise.all(
+
+                batch.map(chunk=>
+
+                    generateEmbedding(
+                        chunk.content
+                    )
+
+                )
+
+            );
+
+
+
+            embeddings.forEach(
+                (vector,index)=>{
+
+
+                    const chunkIndex =
+                    start+index;
+
+
+
+                    vectors.push({
+
+                        id:
+                        `${documentId}_chunk_${chunkIndex}`,
+
+
+                        values:
+                        vector,
+
+
+                        metadata:{
+
+                            documentId:
+                            documentId.toString(),
+
+                            text:
+                            batch[index].content,
+
+                            chunkIndex,
+
+                            pageNumber:
+                            batch[index].pageNumber,
+
+                            filename:
+                            document.filename
+
+                        }
+
+                    });
+
+
+                }
+
+            );
+
+
+            console.log(
+                `Completed ${Math.min(start+BATCH_SIZE,chunks.length)}/${chunks.length}`
+            );
+
+
         }
+
+
+
+        console.log(
+            "Uploading vectors..."
+        );
 
 
 
@@ -141,16 +193,22 @@ const processDocument = async(documentId)=>{
         );
 
 
+
         await Document.findByIdAndUpdate(
 
             documentId,
 
             {
+
                 status:"completed",
-                totalChunks:chunks.length
+
+                totalChunks:
+                chunks.length
+
             }
 
         );
+
 
 
         console.log(
@@ -160,6 +218,7 @@ const processDocument = async(documentId)=>{
 
     }
     catch(error){
+
 
         console.log(
             "Processing Error:",
@@ -178,11 +237,10 @@ const processDocument = async(documentId)=>{
         );
 
 
-        throw error;
-
     }
 
 };
+
 
 
 module.exports = processDocument;

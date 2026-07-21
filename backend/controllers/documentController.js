@@ -1,4 +1,3 @@
-const { PDFParse } = require("pdf-parse");
 const path = require("path");
 const fs = require("fs");
 
@@ -94,7 +93,6 @@ const uploadDocument = async (req, res) => {
 
 
 
-
         const uploadPath = path.join(
 
             uploadDir,
@@ -102,6 +100,7 @@ const uploadDocument = async (req, res) => {
             pdf.name
 
         );
+
 
 
 
@@ -120,46 +119,25 @@ const uploadDocument = async (req, res) => {
 
 
         console.log(
-
             "File exists:",
-
             fs.existsSync(uploadPath)
-
         );
 
 
 
 
 
-        // Basic PDF check
-
-        const buffer = fs.readFileSync(
-            uploadPath
-        );
-
-
-        const parser = new PDFParse({
-
-            data:buffer
-
-        });
-
-
-        const pdfData = await parser.getText();
-
-
-
-
+        // Create document record
 
         const document = await Document.create({
 
-            filename:pdf.name,
+            filename: pdf.name,
 
-            filePath:uploadPath,
+            filePath: uploadPath,
 
             status:"uploaded",
 
-            totalPages:pdfData.total,
+            totalPages:0,
 
             totalChunks:0
 
@@ -180,19 +158,28 @@ const uploadDocument = async (req, res) => {
 
 
 
-        // Start processing directly
+
+        // Start processing
 
         processDocument(
+
             document._id
+
         )
         .catch(error=>{
 
+
             console.log(
-                "Background processing failed:",
+
+                "Document processing failed:",
+
                 error.message
+
             );
 
+
         });
+
 
 
 
@@ -202,13 +189,13 @@ const uploadDocument = async (req, res) => {
 
             success:true,
 
-            message:"PDF uploaded successfully",
+            message:"PDF uploaded successfully. Processing started.",
 
             documentId:document._id,
 
             fileName:pdf.name,
 
-            totalPages:pdfData.total
+            status:"uploaded"
 
         });
 
@@ -220,9 +207,13 @@ const uploadDocument = async (req, res) => {
 
 
         console.log(
+
             "Upload Error:",
+
             error
+
         );
+
 
 
         return res.status(500).json({
@@ -239,6 +230,7 @@ const uploadDocument = async (req, res) => {
     }
 
 };
+
 
 
 
@@ -311,17 +303,23 @@ const deleteDocument = async(req,res)=>{
 
 
 
+        // Delete Pinecone vectors
+
         await deleteVectors(id);
 
 
 
 
 
+        // Delete file
+
         if(fs.existsSync(document.filePath)){
 
 
             fs.unlinkSync(
+
                 document.filePath
+
             );
 
 
@@ -331,6 +329,7 @@ const deleteDocument = async(req,res)=>{
 
 
 
+        // Delete MongoDB record
 
         await Document.findByIdAndDelete(id);
 
@@ -351,8 +350,11 @@ const deleteDocument = async(req,res)=>{
 
 
         console.log(
+
             "Delete error:",
+
             error
+
         );
 
 
