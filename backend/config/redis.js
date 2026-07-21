@@ -1,9 +1,11 @@
 const IORedis = require("ioredis");
 
+
 const redisConnection = new IORedis(
     process.env.REDIS_URL,
     {
-        maxRetriesPerRequest:null
+        maxRetriesPerRequest: null,
+        tls: {}
     }
 );
 
