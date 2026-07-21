@@ -2,7 +2,8 @@ console.log("🔥 DOCUMENT WORKER STARTED");
 require("dotenv").config();
 
 require("./config/redis");
-require("./queues/documentWorker");
+require("./worker/documentWorker");
+
 
 const app = require("./app");
 const connectDB = require("./config/db");
