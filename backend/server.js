@@ -1,4 +1,5 @@
 require("./config/redis");
+require("./queues/documentWorker");
 require("dotenv").config();
 
 const app = require("./app");
