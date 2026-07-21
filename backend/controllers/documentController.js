@@ -3,6 +3,8 @@ const path = require("path");
 const chunkText = require("../utils/textChunker");
 const documentQueue = require("../queues/documentQueue");
 const Document = require("../models/Document");
+const fs = require("fs");
+const { deleteVectors } = require("../services/pineconeService");
 const uploadDocument = async (req, res) => {
     try {
         // Check file exists
@@ -14,6 +16,18 @@ const uploadDocument = async (req, res) => {
         }
 
         const pdf = req.files.pdf;
+        const existingDocument = await Document.findOne({
+    filename: pdf.name
+});
+
+
+if(existingDocument){
+
+    return res.status(400).json({
+        message:"Document already exists"
+    });
+
+}
         const uploadPath = path.join(
     __dirname,
     "../uploads",
@@ -90,8 +104,7 @@ const getDocuments = async(req,res)=>{
     try{
 
         const documents = await Document.find()
-        .select("filename");
-
+.select("filename status totalPages totalChunks createdAt");
 
         res.json(documents);
 
@@ -105,4 +118,70 @@ const getDocuments = async(req,res)=>{
     }
 
 };
-module.exports = { uploadDocument,getDocuments };
+const deleteDocument = async(req,res)=>{
+
+    try{
+
+        const { id } = req.params;
+
+
+        const document = await Document.findById(id);
+
+
+        if(!document){
+
+            return res.status(404).json({
+                message:"Document not found"
+            });
+
+        }
+
+
+
+        // Delete vectors from Pinecone
+        await deleteVectors(
+            id
+        );
+
+
+
+        // Delete PDF file from uploads folder
+        if(fs.existsSync(document.filePath)){
+
+            fs.unlinkSync(document.filePath);
+
+        }
+
+
+
+        // Delete document from MongoDB
+        await Document.findByIdAndDelete(id);
+
+
+
+        res.json({
+
+            message:"Document deleted successfully"
+
+        });
+
+
+    }
+    catch(error){
+
+        console.log(
+            "Delete error:",
+            error
+        );
+
+
+        res.status(500).json({
+
+            message:"Failed to delete document"
+
+        });
+
+    }
+
+};
+module.exports = { uploadDocument,getDocuments ,deleteDocument};

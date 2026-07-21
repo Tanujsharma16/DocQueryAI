@@ -1,5 +1,5 @@
 require("dotenv").config();
-
+const pdfjsLib = require("pdfjs-dist/legacy/build/pdf.js");
 const { Worker } = require("bullmq");
 const redisConnection = require("../config/redis");
 const connectDB = require("../config/db");
@@ -18,7 +18,42 @@ const { uploadVectors } = require("../services/pineconeService");
 // Connect MongoDB for worker process
 connectDB();
 
+const extractPages = async(buffer)=>{
 
+    const pdf = await pdfjsLib.getDocument({
+        data: buffer
+    }).promise;
+
+
+    let pages = [];
+
+
+    for(let i=1;i<=pdf.numPages;i++){
+
+        const page = await pdf.getPage(i);
+
+        const content = await page.getTextContent();
+
+
+        const text = content.items
+            .map(item=>item.str)
+            .join(" ");
+
+
+        pages.push({
+
+            pageNumber:i,
+
+            text:text
+
+        });
+
+    }
+
+
+    return pages;
+
+};
 const worker = new Worker(
     "document-processing",
 
@@ -60,20 +95,37 @@ const worker = new Worker(
         const pdfData = await parser.getText();
 
 
-        console.log(
-            "Pages:",
-            pdfData.total
-        );
+const pages = pdfData.pages;
 
 
-        console.log(
-            "Characters:",
-            pdfData.text.length
-        );
+console.log(
+    "Total Pages:",
+    pages.length
+);
 
 
         // Create chunks
-        const chunks = chunkText(pdfData.text);
+        let chunks = [];
+
+
+pages.forEach(page=>{
+
+    const pageChunks = chunkText(page.text);
+
+
+    pageChunks.forEach(chunk=>{
+
+        chunks.push({
+
+            ...chunk,
+
+            pageNumber: page.pageNumber
+
+        });
+
+    });
+
+});
 
 
         console.log(
@@ -100,11 +152,12 @@ for(let i = 0; i < chunks.length; i++){
 
         values: vector,
 
-        metadata:{
-            documentId: documentId.toString(),
-            text: chunks[i].content
-        }
-
+metadata:{
+    documentId: documentId.toString(),
+    text: chunks[i].content,
+    chunkIndex: i,
+    filename: document.filename
+}
     });
 
 

@@ -14,7 +14,7 @@ const searchVectors = async(queryVector, documentId)=>{
 
         vector: queryVector,
 
-        topK: 5,
+        topK: 10,
 
         includeMetadata: true,
 

@@ -35,7 +35,26 @@ const uploadVectors = async (vectors) => {
 
 };
 
+const deleteVectors = async(documentId)=>{
+
+    const index = pinecone.index(
+        process.env.PINECONE_INDEX_NAME
+    );
+
+
+    await index.deleteMany({
+        filter:{
+            documentId: documentId
+        }
+    });
+
+
+    console.log("Vectors deleted for:", documentId);
+
+};
+
 
 module.exports = {
-    uploadVectors
+    uploadVectors,
+    deleteVectors
 };

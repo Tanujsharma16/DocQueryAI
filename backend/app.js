@@ -3,7 +3,7 @@ const cors = require("cors");
 const fileUpload = require("express-fileupload");
 const queryRoutes = require("./routes/queryRoutes");
 const documentRoutes = require("./routes/documentRoutes");
-
+const chatRoutes = require("./routes/chatRoutes");
 const app = express();
 
 app.use(cors());
@@ -19,7 +19,10 @@ app.use(
 );
 
 app.use("/api/documents", documentRoutes);
-
+app.use(
+    "/api/chats",
+    chatRoutes
+);
 app.get("/", (req, res) => {
     res.send("DocQuery AI API is running");
 });

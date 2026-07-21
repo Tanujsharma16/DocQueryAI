@@ -2,6 +2,8 @@ const { generateEmbedding } = require("../services/embeddingService");
 const { searchVectors } = require("../services/pineconeSearchService");
 const { generateAnswer } = require("../services/geminiService");
 
+const Chat = require("../models/Chat");
+
 
 const askQuestion = async(req,res)=>{
 
@@ -50,6 +52,17 @@ const askQuestion = async(req,res)=>{
 
 
 
+        const sources = results.map(item => ({
+
+            filename: item.metadata.filename,
+
+            chunkIndex: item.metadata.chunkIndex
+
+        }));
+
+
+
+        // Generate answer
         const answer = await generateAnswer(
             question,
             context
@@ -57,10 +70,27 @@ const askQuestion = async(req,res)=>{
 
 
 
-        return res.status(200).json({
+        // Save chat history
+        await Chat.create({
+
+            documentId,
 
             question,
+
             answer
+
+        });
+
+
+
+
+        return res.json({
+
+            question,
+
+            answer,
+
+            sources
 
         });
 
@@ -68,7 +98,10 @@ const askQuestion = async(req,res)=>{
     }
     catch(error){
 
-        console.log("QUERY ERROR:",error);
+        console.log(
+            "QUERY ERROR:",
+            error
+        );
 
 
         return res.status(500).json({
@@ -84,5 +117,7 @@ const askQuestion = async(req,res)=>{
 
 
 module.exports = {
+
     askQuestion
+
 };

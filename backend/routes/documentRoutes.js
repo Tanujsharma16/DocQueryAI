@@ -5,7 +5,8 @@ const router = express.Router();
 
 const {
     uploadDocument,
-    getDocuments
+    getDocuments,
+    deleteDocument
 } = require("../controllers/documentController");
 
 
@@ -19,6 +20,13 @@ router.post(
 router.get(
     "/",
     getDocuments
+);
+
+
+
+router.delete(
+    "/:id",
+    deleteDocument
 );
 
 
