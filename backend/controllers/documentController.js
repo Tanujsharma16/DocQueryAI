@@ -5,108 +5,210 @@ const documentQueue = require("../queues/documentQueue");
 const Document = require("../models/Document");
 const fs = require("fs");
 const { deleteVectors } = require("../services/pineconeService");
+
+
 const uploadDocument = async (req, res) => {
+
     try {
+
         // Check file exists
         if (!req.files || !req.files.pdf) {
             return res.status(400).json({
-                success: false,
-                message: "Please upload a PDF file"
+                success:false,
+                message:"Please upload a PDF file"
             });
         }
 
+
         const pdf = req.files.pdf;
+
+
+        // Check PDF type
+        if(pdf.mimetype !== "application/pdf"){
+            return res.status(400).json({
+                success:false,
+                message:"Only PDF files are allowed"
+            });
+        }
+
+
+
+        // Check duplicate document
         const existingDocument = await Document.findOne({
-    filename: pdf.name
-});
+            filename: pdf.name
+        });
 
 
-if(existingDocument){
+        if(existingDocument){
 
-    return res.status(400).json({
-        message:"Document already exists"
-    });
+            return res.status(400).json({
+                success:false,
+                message:"Document already exists"
+            });
 
-}
-        const uploadPath = path.join(
-    __dirname,
-    "../uploads",
+        }
+
+
+
+        // Create uploads directory if not exists
+        const uploadDir = path.join(
+            __dirname,
+            "../uploads"
+        );
+
+
+        if(!fs.existsSync(uploadDir)){
+            fs.mkdirSync(uploadDir,{
+                recursive:true
+            });
+        }
+
+
+
+        // Complete file path
+       const uploadPath = path.resolve(
+    uploadDir,
     pdf.name
 );
 
-await pdf.mv(uploadPath);
-        // Check PDF type
-        if (pdf.mimetype !== "application/pdf") {
-            return res.status(400).json({
-                success: false,
-                message: "Only PDF files are allowed"
-            });
-        }
-
-        console.log("PDF received:", pdf.name);
-        console.log("PDF size:", pdf.size);
 
 
-        // PDF text extraction
+        // Save file first
+        await pdf.mv(uploadPath);
+
+
+
+        console.log("PDF saved at:", uploadPath);
+
+        console.log(
+            "File exists:",
+            fs.existsSync(uploadPath)
+        );
+
+
+
+        // Read file from disk
+        const buffer = fs.readFileSync(uploadPath);
+
+
+
+        // Extract PDF text
         const parser = new PDFParse({
-            data: pdf.data
+            data:buffer
         });
+
+
 
         const pdfData = await parser.getText();
-        const chunks = chunkText(pdfData.text);
+
+
+
+        const chunks = chunkText(
+            pdfData.text
+        );
+
+
+
+        // Save document details
         const document = await Document.create({
-    filename: pdf.name,
-    filePath: uploadPath,
-    status: "uploaded",
-    totalPages: pdfData.total,
-    totalChunks: chunks.length
-});
 
-       console.log("Document saved:", document._id);
-       await documentQueue.add("process-document", {
-    documentId: document._id,
-    fileName: pdf.name
-});
+            filename:pdf.name,
 
-console.log("Job added to Redis queue");
-        console.log("Total chunks:", chunks.length);
+            filePath:uploadPath,
 
-        console.log("Total pages:", pdfData.total);
-        console.log("Extracted characters:", pdfData.text.length);
+            status:"uploaded",
+
+            totalPages:pdfData.total,
+
+            totalChunks:chunks.length
+
+        });
 
 
-    return res.status(200).json({
-    success: true,
-    message: "PDF parsed successfully",
-    documentId: document._id,
-    fileName: pdf.name,
-    totalPages: pdfData.total,
-    textLength: pdfData.text.length,
-    chunks: chunks.length,
-    textPreview: pdfData.text.substring(0,500)
-});
+
+        console.log(
+            "Document saved:",
+            document._id
+        );
 
 
-    } catch (error) {
 
-        console.error("PDF Parsing Error:", error);
+        // Add job to queue
+      await documentQueue.add(
+    "process-document",
+    {
+        documentId:document._id
+    }
+);
+
+
+        console.log(
+            "Job added to Redis queue"
+        );
+
+
+
+        return res.status(200).json({
+
+            success:true,
+
+            message:"PDF uploaded successfully",
+
+            documentId:document._id,
+
+            fileName:pdf.name,
+
+            totalPages:pdfData.total,
+
+            textLength:pdfData.text.length,
+
+            chunks:chunks.length,
+
+            textPreview:
+            pdfData.text.substring(0,500)
+
+        });
+
+
+
+    }
+    catch(error){
+
+        console.error(
+            "Upload Error:",
+            error
+        );
+
 
         return res.status(500).json({
-            success: false,
-            message: "Failed to parse PDF",
-            error: error.message
+
+            success:false,
+
+            message:"Failed to upload PDF",
+
+            error:error.message
+
         });
+
     }
+
 };
+
+
+
 
 const getDocuments = async(req,res)=>{
 
     try{
 
         const documents = await Document.find()
-.select("filename status totalPages totalChunks createdAt");
+        .select(
+            "filename status totalPages totalChunks createdAt"
+        );
+
 
         res.json(documents);
+
 
     }
     catch(error){
@@ -118,14 +220,22 @@ const getDocuments = async(req,res)=>{
     }
 
 };
+
+
+
+
+
 const deleteDocument = async(req,res)=>{
 
     try{
 
-        const { id } = req.params;
+
+        const {id}=req.params;
+
 
 
         const document = await Document.findById(id);
+
 
 
         if(!document){
@@ -138,14 +248,12 @@ const deleteDocument = async(req,res)=>{
 
 
 
-        // Delete vectors from Pinecone
-        await deleteVectors(
-            id
-        );
+        // Delete vectors
+        await deleteVectors(id);
 
 
 
-        // Delete PDF file from uploads folder
+        // Delete file
         if(fs.existsSync(document.filePath)){
 
             fs.unlinkSync(document.filePath);
@@ -154,7 +262,7 @@ const deleteDocument = async(req,res)=>{
 
 
 
-        // Delete document from MongoDB
+        // Delete DB record
         await Document.findByIdAndDelete(id);
 
 
@@ -164,6 +272,7 @@ const deleteDocument = async(req,res)=>{
             message:"Document deleted successfully"
 
         });
+
 
 
     }
@@ -184,4 +293,11 @@ const deleteDocument = async(req,res)=>{
     }
 
 };
-module.exports = { uploadDocument,getDocuments ,deleteDocument};
+
+
+
+module.exports={
+    uploadDocument,
+    getDocuments,
+    deleteDocument
+};
