@@ -2,7 +2,7 @@ console.log("🔥 DOCUMENT WORKER STARTED");
 require("dotenv").config();
 
 require("./config/redis");
-require("./workers/documentWorker");
+
 
 
 const app = require("./app");

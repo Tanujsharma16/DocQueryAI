@@ -1,115 +1,156 @@
 const { PDFParse } = require("pdf-parse");
 const path = require("path");
-const chunkText = require("../utils/textChunker");
-const documentQueue = require("../queues/documentQueue");
-const Document = require("../models/Document");
 const fs = require("fs");
+
+const Document = require("../models/Document");
+
+const processDocument = require("../services/documentProcessor");
+
 const { deleteVectors } = require("../services/pineconeService");
+
 
 
 const uploadDocument = async (req, res) => {
 
     try {
 
-        // Check file exists
+
         if (!req.files || !req.files.pdf) {
+
             return res.status(400).json({
+
                 success:false,
+
                 message:"Please upload a PDF file"
+
             });
+
         }
+
 
 
         const pdf = req.files.pdf;
 
 
-        // Check PDF type
+
         if(pdf.mimetype !== "application/pdf"){
+
             return res.status(400).json({
+
                 success:false,
+
                 message:"Only PDF files are allowed"
+
             });
+
         }
 
 
 
-        // Check duplicate document
+
         const existingDocument = await Document.findOne({
+
             filename: pdf.name
+
         });
+
 
 
         if(existingDocument){
 
             return res.status(400).json({
+
                 success:false,
+
                 message:"Document already exists"
+
             });
 
         }
 
 
 
-        // Create uploads directory if not exists
+
         const uploadDir = path.join(
+
             __dirname,
+
             "../uploads"
+
         );
 
 
+
         if(!fs.existsSync(uploadDir)){
+
             fs.mkdirSync(uploadDir,{
+
                 recursive:true
+
             });
+
         }
 
 
 
-        // Complete file path
-       const uploadPath = path.resolve(
-    uploadDir,
-    pdf.name
-);
+
+
+        const uploadPath = path.join(
+
+            uploadDir,
+
+            pdf.name
+
+        );
 
 
 
-        // Save file first
+
+        // Save PDF
+
         await pdf.mv(uploadPath);
 
 
 
-        console.log("PDF saved at:", uploadPath);
-
         console.log(
-            "File exists:",
-            fs.existsSync(uploadPath)
+            "PDF saved:",
+            uploadPath
         );
 
 
 
-        // Read file from disk
-        const buffer = fs.readFileSync(uploadPath);
+        console.log(
+
+            "File exists:",
+
+            fs.existsSync(uploadPath)
+
+        );
 
 
 
-        // Extract PDF text
+
+
+        // Basic PDF check
+
+        const buffer = fs.readFileSync(
+            uploadPath
+        );
+
+
         const parser = new PDFParse({
-            data:buffer
-        });
 
+            data:buffer
+
+        });
 
 
         const pdfData = await parser.getText();
 
 
 
-        const chunks = chunkText(
-            pdfData.text
-        );
 
 
-
-        // Save document details
         const document = await Document.create({
 
             filename:pdf.name,
@@ -120,31 +161,40 @@ const uploadDocument = async (req, res) => {
 
             totalPages:pdfData.total,
 
-            totalChunks:chunks.length
+            totalChunks:0
 
         });
 
 
 
+
         console.log(
+
             "Document saved:",
+
             document._id
+
         );
 
 
 
-        // Add job to queue
-      await documentQueue.add(
-    "process-document",
-    {
-        documentId:document._id
-    }
-);
 
 
-        console.log(
-            "Job added to Redis queue"
-        );
+        // Start processing directly
+
+        processDocument(
+            document._id
+        )
+        .catch(error=>{
+
+            console.log(
+                "Background processing failed:",
+                error.message
+            );
+
+        });
+
+
 
 
 
@@ -158,23 +208,18 @@ const uploadDocument = async (req, res) => {
 
             fileName:pdf.name,
 
-            totalPages:pdfData.total,
-
-            textLength:pdfData.text.length,
-
-            chunks:chunks.length,
-
-            textPreview:
-            pdfData.text.substring(0,500)
+            totalPages:pdfData.total
 
         });
+
 
 
 
     }
     catch(error){
 
-        console.error(
+
+        console.log(
             "Upload Error:",
             error
         );
@@ -190,9 +235,13 @@ const uploadDocument = async (req, res) => {
 
         });
 
+
     }
 
 };
+
+
+
 
 
 
@@ -201,25 +250,36 @@ const getDocuments = async(req,res)=>{
 
     try{
 
+
         const documents = await Document.find()
+
         .select(
             "filename status totalPages totalChunks createdAt"
         );
 
 
+
         res.json(documents);
+
 
 
     }
     catch(error){
 
+
         res.status(500).json({
+
             message:"Failed to fetch documents"
+
         });
+
 
     }
 
 };
+
+
+
 
 
 
@@ -241,29 +301,40 @@ const deleteDocument = async(req,res)=>{
         if(!document){
 
             return res.status(404).json({
+
                 message:"Document not found"
+
             });
 
         }
 
 
 
-        // Delete vectors
+
         await deleteVectors(id);
 
 
 
-        // Delete file
+
+
         if(fs.existsSync(document.filePath)){
 
-            fs.unlinkSync(document.filePath);
+
+            fs.unlinkSync(
+                document.filePath
+            );
+
 
         }
 
 
 
-        // Delete DB record
+
+
+
         await Document.findByIdAndDelete(id);
+
+
 
 
 
@@ -278,10 +349,12 @@ const deleteDocument = async(req,res)=>{
     }
     catch(error){
 
+
         console.log(
             "Delete error:",
             error
         );
+
 
 
         res.status(500).json({
@@ -290,14 +363,21 @@ const deleteDocument = async(req,res)=>{
 
         });
 
+
     }
 
 };
 
 
 
-module.exports={
+
+
+module.exports = {
+
     uploadDocument,
+
     getDocuments,
+
     deleteDocument
+
 };
