@@ -2,9 +2,9 @@
 
 ## AI-Powered Document Question Answering System using RAG
 
-DocQueryAI is an AI-based document analysis and question-answering system that allows users to upload PDF documents and ask questions from them. The system uses **Retrieval Augmented Generation (RAG)** to retrieve relevant information from documents and generate accurate responses using Large Language Models.
+DocQueryAI is an AI-powered document question-answering platform that allows users to upload PDF documents and ask questions based on their content.
 
-Instead of relying only on keyword search, DocQueryAI uses **semantic search** with embeddings and vector databases to understand the meaning of queries and find relevant document content.
+The application uses **Retrieval Augmented Generation (RAG)** architecture, where relevant information is retrieved from uploaded documents using vector similarity search and then provided to an LLM to generate accurate and context-aware responses.
 
 ---
 
@@ -12,13 +12,14 @@ Instead of relying only on keyword search, DocQueryAI uses **semantic search** w
 
 - 📄 Upload PDF documents
 - 🔍 Extract text from PDF files
-- ✂️ Split documents into smaller chunks
-- 🧠 Generate semantic embeddings for document chunks
+- ✂️ Split documents into meaningful chunks
+- 🧠 Generate text embeddings
 - 🗄️ Store embeddings in Pinecone Vector Database
-- 🔎 Perform similarity-based semantic search
-- 💬 Ask questions related to uploaded documents
-- 🤖 Generate AI-powered answers using Google Gemini
-- ⚡ Context-aware responses using RAG pipeline
+- 🔎 Perform semantic similarity search
+- 💬 Ask questions from uploaded documents
+- 🤖 Generate AI responses using Google Gemini
+- ⚡ Context-aware answers using RAG pipeline
+- 🌐 Fully deployed frontend and backend
 
 ---
 
@@ -31,14 +32,14 @@ Instead of relying only on keyword search, DocQueryAI uses **semantic search** w
               React Frontend
                       |
                       |
-              Node.js + Express API
+            Node.js + Express API
                       |
                       |
-             Document Processing
+          PDF Processing Pipeline
                       |
-        -----------------------------
-        |                           |
-   PDF Text Extraction          Chunking
+        --------------------------------
+        |                              |
+ Text Extraction                 Text Chunking
         |
         |
  Embedding Generation
@@ -47,7 +48,7 @@ Instead of relying only on keyword search, DocQueryAI uses **semantic search** w
  Pinecone Vector Database
         |
         |
- User Query Embedding
+ User Query Processing
         |
         |
  Similarity Search
@@ -59,7 +60,7 @@ Instead of relying only on keyword search, DocQueryAI uses **semantic search** w
  Google Gemini LLM
         |
         |
-     Final Answer
+     Final Response
 ```
 
 ---
@@ -84,7 +85,7 @@ Instead of relying only on keyword search, DocQueryAI uses **semantic search** w
 - MongoDB
 - Mongoose
 
-## Artificial Intelligence
+## AI / Machine Learning
 
 - Retrieval Augmented Generation (RAG)
 - Google Gemini API
@@ -99,26 +100,32 @@ Instead of relying only on keyword search, DocQueryAI uses **semantic search** w
 
 ---
 
-# 🔄 How It Works
+# 🔄 Application Workflow
 
 ## 1. Document Upload
 
 User uploads a PDF document through the React frontend.
 
-The backend receives the file and starts the document processing pipeline.
+The backend receives the document and starts the processing pipeline.
+
+```
+PDF Upload
+     |
+     ↓
+Backend API
+```
 
 ---
 
 ## 2. Text Extraction
 
-The PDF content is extracted into raw text.
-
-Example:
+The uploaded PDF is converted into machine-readable text.
 
 ```
 PDF Document
-      |
+
       ↓
+
 Extracted Text
 ```
 
@@ -126,7 +133,7 @@ Extracted Text
 
 ## 3. Text Chunking
 
-Large documents are divided into smaller chunks because Large Language Models have limited context windows.
+Large documents are divided into smaller chunks because AI models have limited context windows.
 
 Example:
 
@@ -139,33 +146,37 @@ Chunk 3
 ...
 ```
 
+Chunking improves retrieval accuracy and reduces unnecessary processing.
+
 ---
 
 ## 4. Embedding Generation
 
-Each chunk is converted into a numerical vector representation called an embedding.
+Each document chunk is converted into a numerical vector representation called an embedding.
 
 Example:
 
 ```
-Text
+Text:
 
-"Database normalization reduces redundancy"
+"Normalization reduces database redundancy"
 
-          ↓
+
+        ↓
+
 
 [0.234, 0.567, 0.891 ...]
 ```
 
-These embeddings represent the semantic meaning of the text.
+These vectors represent the semantic meaning of the text.
 
 ---
 
 ## 5. Vector Storage
 
-Generated embeddings are stored in Pinecone Vector Database.
+The generated embeddings are stored in Pinecone Vector Database.
 
-Pinecone enables fast similarity search between user queries and document content.
+Pinecone enables efficient similarity search between user queries and stored document information.
 
 ---
 
@@ -178,7 +189,7 @@ User Question
 
         ↓
 
-Convert Question into Embedding
+Convert Query into Embedding
 
         ↓
 
@@ -199,18 +210,42 @@ Generate Final Answer
 
 ---
 
-# 🧠 What is RAG?
+# 🧠 RAG Architecture
 
-RAG (Retrieval Augmented Generation) combines information retrieval with generative AI.
+RAG stands for **Retrieval Augmented Generation**.
 
-Instead of directly asking an LLM to answer, RAG first retrieves relevant information from external documents and then provides that information to the LLM to generate a more accurate response.
+Instead of directly asking an LLM to answer, RAG first retrieves relevant information from external sources and then uses that information to generate a response.
 
-Benefits:
+## Benefits of RAG:
 
-- Better accuracy
-- Reduced hallucination
+- Improves answer accuracy
+- Reduces hallucination
 - Works with private documents
-- Provides context-aware answers
+- Provides context-aware responses
+
+---
+
+# 🔍 Semantic Search
+
+Traditional search works on exact keyword matching.
+
+Semantic search understands the meaning behind queries.
+
+Example:
+
+Query:
+
+```
+"What is database normalization?"
+```
+
+Can retrieve:
+
+```
+"Normalization reduces duplicate data in databases."
+```
+
+Even if exact words are different.
 
 ---
 
@@ -243,61 +278,49 @@ DocQueryAI
 
 ---
 
-# 🔑 Key Concepts Used
+# 🌐 Deployment
 
-## Embeddings
+The application is deployed using cloud platforms.
 
-Embeddings convert text into numerical vectors that capture semantic meaning.
+## Frontend
 
-This allows the system to compare meanings instead of only matching keywords.
+- Deployed using **Vercel**
+- React + Vite frontend is hosted on Vercel
 
----
+## Backend
 
-## Vector Database
+- Deployed using **Render**
+- Node.js + Express.js backend is hosted on Render
 
-Unlike traditional databases that search exact values, vector databases perform similarity searches based on meaning.
+## Environment Variables
 
-Example:
+The following environment variables are configured securely:
 
-Query:
-
-```
-"What is database normalization?"
-```
-
-can find:
-
-```
-"Normalization reduces duplicate data in databases"
-```
-
-even if exact words are different.
-
----
-
-## Semantic Search
-
-Semantic search understands the intent behind a query instead of only matching keywords.
+- MongoDB Connection URI
+- Google Gemini API Key
+- Pinecone API Key
+- Pinecone Configuration
 
 ---
 
 # 🎯 Challenges Solved
 
-- Handling large PDF documents
+- Processing large PDF documents efficiently
 - Converting unstructured text into searchable vectors
-- Improving answer accuracy using retrieved context
-- Connecting LLM responses with user-provided documents
+- Implementing semantic search instead of keyword search
+- Integrating LLM responses with user-provided documents
+- Building an end-to-end AI application
 
 ---
 
 # 🔮 Future Improvements
 
 - User authentication
-- Chat history storage
+- Chat history
 - Multiple document management
 - Document sharing
 - Improved retrieval algorithms
-- Deployment with cloud infrastructure
+- Better response evaluation
 
 ---
 
