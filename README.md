@@ -1,180 +1,309 @@
-# DocQuery AI 🤖
+# DocQueryAI 🤖
 
-An AI-powered document question answering system built using RAG (Retrieval Augmented Generation).
+## AI-Powered Document Question Answering System using RAG
 
-DocQuery AI allows users to upload PDF documents and ask questions. The system retrieves relevant information from documents using semantic search and generates accurate answers using Google Gemini LLM.
+DocQueryAI is an AI-based document analysis and question-answering system that allows users to upload PDF documents and ask questions from them. The system uses **Retrieval Augmented Generation (RAG)** to retrieve relevant information from documents and generate accurate responses using Large Language Models.
 
----
-
-## 🚀 Features
-
-- Upload PDF documents
-- Extract text from PDF files
-- Automatic text chunking
-- Generate embeddings using Google Gemini
-- Store embeddings in Pinecone Vector Database
-- Semantic similarity search
-- AI-generated answers from uploaded documents
-- Background document processing using Redis and BullMQ
-- React-based chat interface
+Instead of relying only on keyword search, DocQueryAI uses **semantic search** with embeddings and vector databases to understand the meaning of queries and find relevant document content.
 
 ---
 
-## 🏗️ Architecture
+# 🚀 Features
 
-
-User
-|
-| Upload PDF
-↓
-React Frontend
-|
-↓
-Node.js + Express Backend
-|
-├── MongoDB Atlas
-| |
-| └── Document Metadata
-|
-├── Redis + BullMQ
-| |
-| └── Background Processing Queue
-|
-↓
-PDF Processing Worker
-|
-├── PDF Text Extraction
-├── Text Chunking
-└── Gemini Embeddings
-|
-↓
-Pinecone Vector Database
-|
-↓
-User Question
-|
-↓
-Question Embedding
-|
-↓
-Similarity Search
-|
-↓
-Relevant Context
-|
-↓
-Google Gemini LLM
-|
-↓
-Final Answer
-
+- 📄 Upload PDF documents
+- 🔍 Extract text from PDF files
+- ✂️ Split documents into smaller chunks
+- 🧠 Generate semantic embeddings for document chunks
+- 🗄️ Store embeddings in Pinecone Vector Database
+- 🔎 Perform similarity-based semantic search
+- 💬 Ask questions related to uploaded documents
+- 🤖 Generate AI-powered answers using Google Gemini
+- ⚡ Context-aware responses using RAG pipeline
 
 ---
 
-## 🛠️ Tech Stack
+# 🏗️ System Architecture
 
-### Frontend
+```
+                    User
+                      |
+                      |
+              React Frontend
+                      |
+                      |
+              Node.js + Express API
+                      |
+                      |
+             Document Processing
+                      |
+        -----------------------------
+        |                           |
+   PDF Text Extraction          Chunking
+        |
+        |
+ Embedding Generation
+        |
+        |
+ Pinecone Vector Database
+        |
+        |
+ User Query Embedding
+        |
+        |
+ Similarity Search
+        |
+        |
+ Relevant Context + Query
+        |
+        |
+ Google Gemini LLM
+        |
+        |
+     Final Answer
+```
+
+---
+
+# 🛠️ Tech Stack
+
+## Frontend
 
 - React.js
 - Vite
 - Tailwind CSS
 - Axios
+- React Router
 
-
-### Backend
+## Backend
 
 - Node.js
 - Express.js
-- MongoDB Atlas
-- Redis
-- BullMQ
 
+## Database
 
-### AI / Vector Database
+- MongoDB
+- Mongoose
 
+## Artificial Intelligence
+
+- Retrieval Augmented Generation (RAG)
 - Google Gemini API
+- Text Embeddings
 - Pinecone Vector Database
-- RAG Architecture
+
+## Document Processing
+
+- PDF Text Extraction
+- Text Chunking
+- Semantic Search
 
 ---
 
-## 📂 Project Structure
+# 🔄 How It Works
 
+## 1. Document Upload
 
+User uploads a PDF document through the React frontend.
+
+The backend receives the file and starts the document processing pipeline.
+
+---
+
+## 2. Text Extraction
+
+The PDF content is extracted into raw text.
+
+Example:
+
+```
+PDF Document
+      |
+      ↓
+Extracted Text
+```
+
+---
+
+## 3. Text Chunking
+
+Large documents are divided into smaller chunks because Large Language Models have limited context windows.
+
+Example:
+
+```
+Document
+
+Chunk 1
+Chunk 2
+Chunk 3
+...
+```
+
+---
+
+## 4. Embedding Generation
+
+Each chunk is converted into a numerical vector representation called an embedding.
+
+Example:
+
+```
+Text
+
+"Database normalization reduces redundancy"
+
+          ↓
+
+[0.234, 0.567, 0.891 ...]
+```
+
+These embeddings represent the semantic meaning of the text.
+
+---
+
+## 5. Vector Storage
+
+Generated embeddings are stored in Pinecone Vector Database.
+
+Pinecone enables fast similarity search between user queries and document content.
+
+---
+
+## 6. Question Answering
+
+When a user asks a question:
+
+```
+User Question
+
+        ↓
+
+Convert Question into Embedding
+
+        ↓
+
+Search Similar Vectors in Pinecone
+
+        ↓
+
+Retrieve Relevant Document Chunks
+
+        ↓
+
+Send Context + Question to Gemini
+
+        ↓
+
+Generate Final Answer
+```
+
+---
+
+# 🧠 What is RAG?
+
+RAG (Retrieval Augmented Generation) combines information retrieval with generative AI.
+
+Instead of directly asking an LLM to answer, RAG first retrieves relevant information from external documents and then provides that information to the LLM to generate a more accurate response.
+
+Benefits:
+
+- Better accuracy
+- Reduced hallucination
+- Works with private documents
+- Provides context-aware answers
+
+---
+
+# 📂 Project Structure
+
+```
 DocQueryAI
 
-├── backend
-│ ├── controllers
-│ ├── models
-│ ├── routes
-│ ├── services
-│ ├── workers
-│ ├── config
-│ ├── utils
-│ └── server.js
 │
-└── frontend
-├── src
-├── components
-├── pages
-└── App.jsx
-
+├── frontend
+│   │
+│   ├── src
+│   ├── components
+│   ├── pages
+│   └── App.jsx
+│
+│
+├── backend
+│   │
+│   ├── controllers
+│   ├── routes
+│   ├── models
+│   ├── services
+│   ├── config
+│   └── server.js
+│
+│
+└── README.md
+```
 
 ---
 
-## ⚙️ Setup Instructions
+# 🔑 Key Concepts Used
 
-## Backend Setup
+## Embeddings
 
-Go to backend folder:
+Embeddings convert text into numerical vectors that capture semantic meaning.
 
-```bash
-cd backend
-npm install
-npm run dev
+This allows the system to compare meanings instead of only matching keywords.
 
-Create a .env file inside backend folder:
+---
 
-PORT=5000
+## Vector Database
 
-MONGO_URI=
+Unlike traditional databases that search exact values, vector databases perform similarity searches based on meaning.
 
-GEMINI_API_KEY=
+Example:
 
-PINECONE_API_KEY=
+Query:
 
-PINECONE_INDEX_NAME=
+```
+"What is database normalization?"
+```
 
-Run the background worker:
+can find:
 
-node workers/documentWorker.js
-Frontend Setup
+```
+"Normalization reduces duplicate data in databases"
+```
 
-Go to frontend folder:
+even if exact words are different.
 
-cd frontend
-npm install
-npm run dev
-🔄 How It Works
-User uploads a PDF document.
-Backend stores document information in MongoDB.
-Redis queue sends document processing jobs.
-Worker extracts text from PDF.
-Text is divided into smaller chunks.
-Gemini generates embeddings for chunks.
-Embeddings are stored in Pinecone.
-User asks a question.
-Question is converted into an embedding.
-Pinecone retrieves relevant document chunks.
-Gemini generates the final answer using retrieved context.
-🔮 Future Improvements
-Multiple document management
-Chat history
-User authentication
-Document-wise conversations
-Source citation with page numbers
-Better UI/UX
-Cloud deployment
-👨‍💻 Author
+---
 
-Tanuj Sharma
+## Semantic Search
+
+Semantic search understands the intent behind a query instead of only matching keywords.
+
+---
+
+# 🎯 Challenges Solved
+
+- Handling large PDF documents
+- Converting unstructured text into searchable vectors
+- Improving answer accuracy using retrieved context
+- Connecting LLM responses with user-provided documents
+
+---
+
+# 🔮 Future Improvements
+
+- User authentication
+- Chat history storage
+- Multiple document management
+- Document sharing
+- Improved retrieval algorithms
+- Deployment with cloud infrastructure
+
+---
+
+# 👨‍💻 Author
+
+**Tanuj Sharma**
+
+GitHub:
+https://github.com/Tanujsharma16
